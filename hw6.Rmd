@@ -1,0 +1,78 @@
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Top dogs
+
+In this homework, you will try to reproduce the fantastic infographic for [top dogs](https://informationisbeautiful.net/visualizations/best-in-show-whats-the-top-data-dog/), originally produced by David McCandless. The raw data can be found [here](https://docs.google.com/spreadsheets/d/1l_HfF5EaN-QgnLc2UYdCc7L2CVrk0p3VdGB1godOyhk/edit#gid=10). You can download this file by File -- Download As -- Microsoft Excel (.xlsx).
+
+**Submission instructions**: Create a folder named `ds202_hw6`, and name the RMarkDown file including your solutions `hw6.Rmd` under this folder. For the submission, create a GitHub repository named `ds202_hw6` under your GitHub account, and push both `hw6.Rmd` and the knitted `hw6.html` before the deadline. I will assume you use the same GitHub username as for your HW5 submission. The latest version of your homework appearing on GitHub before the deadline is graded. *It is crucial to follow the exact folder structure and file names*, so that your homework can be reproduced and graded by an automated script. This homework is **due on April 22** before class.
+
+1. Import the data and clean appropriately. To read in the data, you can use `readxl::read_xlsx('fileNameHere', sheet='sheetNameHere')`. Required data are in the sheets `Best in show` and `Best in show full sheet`. Take extra care on the column names and the first few rows of the data frame after read in.
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(dplyr)
+best <- readxl::read_xlsx('BestInShow.xlsx', sheet='Best in show')
+bestfull <- readxl::read_xlsx('BestInShow.xlsx', sheet = 'Best in show full sheet')
+best <- best [,-c(2:4,6,8,13, 16, 20, 22, 42, 45, 51:55)]
+colnames <- best[5,]
+names(best) <- colnames
+best <- best[-c(1:6),]
+best <- best[-c(173:183),]
+Intelligence <- best[c(1,5)]
+intelnames <- c("Breed", "Intelligence")
+names(Intelligence) <- intelnames
+Intelligence
+bestfull <-bestfull[, c(1,3,32,5,7)]
+names <- c("Breed", "Type", "Size", "Data Score", "Popularity")
+names(bestfull) <- names
+bestfull <- bestfull[-c(1:3),]
+bestfull <- bestfull %>% drop_na(`Data Score`)
+
+dat <- left_join(bestfull, Intelligence)
+dat$Type <- factor(dat$Type)
+dat <- dat %>% drop_na(Intelligence)
+dat$Size <- factor(dat$Size, levels = c("small", "medium", "large"))
+dat$Intelligence <- factor(dat$Intelligence, levels = c("Lowest", "Fair", "Average","Above Average","Excellent", "Brightest"))
+dat$Popularity <- as.numeric(dat$Popularity)
+dat$`Data Score` <- as.numeric(dat$`Data Score`)
+```
+2. Create a graphics similar to the  [top dogs](https://informationisbeautiful.net/visualizations/best-in-show-whats-the-top-data-dog/) figure. Your figure needs to display the following information with appropriate plotting elements:
+
+
+
+```{r, fig.height = 10, fig.width = 10, fig.cap = "Quadrant I = Hot Dogs!, Quadrant II = Indexplicably Overrated, Quadrant III = The Rightly Ignored, Quadrant IV = Overlooked Treasures"}
+dat %>% ggplot(aes(x =`Data Score`, y = Popularity, shape = Intelligence, color = Type, size = Size)) + 
+  geom_point(point= "jitter") + 
+  geom_text(aes(label= Breed, check_overlap = TRUE, nudge_x = 1, hjust = 0,vjust = 0, nudge_y = 1,  position = "jitter",size = "medium")) +
+  theme(legend.position = "top",
+        legend.key.size = unit(.1, "cm"),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 10)) + 
+  scale_y_reverse() +
+  ggtitle("Best in Show: The Ultimate Data Dog") + 
+  geom_vline(xintercept =((max(dat$`Data Score`) + min(dat$`Data Score`))/2)) +
+  geom_hline(yintercept = ((max(dat$Popularity) + min(dat$Popularity))/2)) +
+  theme(axis.ticks=element_blank(), axis.text=element_blank(), 
+        panel.background  = element_rect(fill = "cornsilk2", colour = "cornsilk2"),
+        plot.background = element_rect(fill = 'cornsilk2', colour = 'cornsilk2'),
+        legend.background = element_rect(fill = 'cornsilk2', colour = 'cornsilk2'),
+        legend.key = element_rect(fill = 'cornsilk2', colour = 'cornsilk2'),
+        plot.title = element_text(size =22)) + scale_color_brewer(palette = "Dark2")
+```
+- breed of dog 
+- type of dog (work, toy, etc.)
+- size of dog
+- data score 
+- popularity /
+- intelligence of the dog
+- appropriate legends & explanation
+
+Hints and Notes:
+
+- The breed of dog can be displayed without the silhouttes (text only is fine)
+- Avoid (too much) overlaps!
+- Choose a good color scheme.
+- Your submission is supposed to be fully reproducible, i.e. the TA and I will 'knit' your submission in RStudio. 
